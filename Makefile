@@ -556,3 +556,7 @@ bundle-reset:
 
 .PHONY: full-gen
 full-gen: go-verify manifests  generate manifests fmt bundle fix-imports bundle-reset ## generates all automatically generated content
+
+# Source-to-OLM deployment is kept in a separate makefile so the existing
+# development and release targets above retain their current behavior.
+-include Makefile.olm

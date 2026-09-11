@@ -158,6 +158,22 @@ Go to [OperatorHub](https://operatorhub.io/operator/fence-agents-remediation), c
 * Follow OLM's [instructions](https://sdk.operatorframework.io/docs/building-operators/golang/tutorial/#configure-the-operators-image-registry) on how to configure the operator's image registry (build and push the operator container).
 * Run FAR in your cluster using its bundle container (similar to the [above installation](#deploy-the-latest-version), and also see [OLM's instructions](https://sdk.operatorframework.io/docs/building-operators/golang/tutorial/#3-deploy-your-operator-with-olm)).
 
+For PR or branch testing, you can instead build the operator with the pinned
+source-deployment toolchain, push temporary images to `ttl.sh`, and install the
+generated OLM bundle with operator-sdk:
+
+```bash
+make deploy-olm
+```
+
+The temporary images expire after one hour by default. Override the duration
+and deployment namespace when needed, for example:
+
+```bash
+TTL_DURATION=4h OLM_OPERATOR_NAMESPACE=openshift-workload-availability make deploy-olm
+make undeploy-olm
+```
+
 ## Usage
 
 FAR is recommended for use with NHC to automate high availability for unhealthy nodes since NHC detects unhealthy nodes and it can create an external remediation CR, e.g., FenceAgentsRemediation CR, for unhealthy nodes.
