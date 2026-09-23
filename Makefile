@@ -419,7 +419,7 @@ bundle-validate: operator-sdk ## Validate the bundle directory with additional v
 
 .PHONY: bundle-build
 bundle-build: bundle bundle-update ## Build the bundle image.
-	docker build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
+	$(CONTAINER_TOOL) build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
 
 .PHONY: bundle-push
 bundle-push: ## Push the bundle image.
@@ -523,7 +523,7 @@ container-build: docker-build bundle-build ## Build containers
 
 .PHONY: bundle-build-community
 bundle-build-community: bundle-community ## Run bundle community changes in CSV, and then build the bundle image.
-	docker build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
+	$(CONTAINER_TOOL) build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
 
 .PHONY: container-build-community
 container-build-community: docker-build bundle-build-community ## Build containers for community
@@ -557,6 +557,29 @@ bundle-reset:
 .PHONY: full-gen
 full-gen: go-verify manifests  generate manifests fmt bundle fix-imports bundle-reset ## generates all automatically generated content
 
-# Source-to-OLM deployment is kept in a separate makefile so the existing
-# development and release targets above retain their current behavior.
--include Makefile.olm
+
+# Shared dev environment
+# Uses a local sibling checkout if available (e.g. ../tools), otherwise
+# downloads medik8s/tools into .tools/ when a dev-* target is first used.
+TOOLS_DIR ?= $(shell cd .. && pwd)/tools
+DEV_MK := $(TOOLS_DIR)/dev/dev.mk
+ifeq ($(wildcard $(DEV_MK)),)
+  TOOLS_DIR := $(shell pwd)/.tools
+  DEV_MK := $(TOOLS_DIR)/dev/dev.mk
+endif
+-include $(DEV_MK)
+ifeq ($(wildcard $(DEV_MK)),)
+dev-%:
+	@echo "Downloading medik8s/tools into $(TOOLS_DIR)..."
+	@if [ -d $(TOOLS_DIR) ]; then \
+		if [ -f $(TOOLS_DIR)/.managed-by-makefile ]; then \
+			echo "  Removing stale $(TOOLS_DIR)..."; rm -rf $(TOOLS_DIR); \
+		else \
+			echo "Error: $(TOOLS_DIR) exists but was not created by this Makefile."; exit 1; \
+		fi; \
+	fi
+	@git clone --depth 1 https://github.com/medik8s/tools.git $(TOOLS_DIR)
+	@touch $(TOOLS_DIR)/.managed-by-makefile
+	@test -f $(DEV_MK) || { echo "Error: $(DEV_MK) not found after clone."; exit 1; }
+	@$(MAKE) $@
+endif
